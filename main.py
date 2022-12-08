@@ -96,18 +96,22 @@ def paint_display(screen, grid, servers):
 
     screen.blit(server_info_tile, pygame.Rect(cell_x, cell_y, CELL_SIZE, CELL_SIZE))
 
-def paint_interface(screen):
+    if is_connected:
+      sorted_servers = sorted(servers, key=lambda x: x['info']['Score'], reverse=True)
+      for server in sorted_servers:
+        if server['info']['Status']:
+          pygame.draw.line(screen, (0, 255, 0), (player_x * CELL_SIZE + CELL_SIZE//2, player_y * CELL_SIZE + CELL_SIZE//2), (server['location'][0] * CELL_SIZE + CELL_SIZE//2, server['location'][1] * CELL_SIZE + CELL_SIZE//2), 10)
+          break
+
+def paint_interface(screen, connect_pos, rebuild_pos):
   interface_surface = pygame.Surface((INTERFACE_WIDTH, DISPLAY_HEIGHT))
   interface_surface.fill((158, 227, 79))
+
+  interface_surface.blit(BUTTON_CONNECT_TO_SERVER, connect_pos)
+  interface_surface.blit(BUTTON_REBUILD_MAP, rebuild_pos)
+
   screen.blit(interface_surface, (DISPLAY_WIDTH, 0))
   
-  color = (158, 227, 79)
-  interface_x = DISPLAY_WIDTH
-  interface_y = 0
-  interface_width = INTERFACE_WIDTH
-  interface_height = DISPLAY_HEIGHT
-  pygame.draw.rect(screen, color, pygame.Rect(interface_x, interface_y, interface_width, interface_height))
-
 def insert_server(grid):
   grid_height = len(grid)
   grid_width = len(grid[0]) if grid else 0
@@ -176,6 +180,38 @@ def insert_grass(grid):
 
   grid[server_y][server_x] = 'GRASS'
 
+def init_grid():
+  grid = []
+  for i in range(grid_height):
+    row = []
+    for j in range(grid_width):
+      row.append('EMPTY')
+    grid.append(row)
+
+  grid[player_y][player_x] = 'PLAYER'
+
+  servers = []
+  for i in range(4):
+    server_location = insert_server(grid)
+    server_information = { 
+      'CPU Utilization': random.randint(2000, 8000)/100, 
+      'Throughput': random.randint(100,1000)/100, 
+      'Status': bool(random.randint(0, 1)),
+      'Latency': 5 * ((server_location[0] - player_x) ** 2 + (server_location[1] - player_y) ** 2) ** (1/2)
+    }
+    server_information['Score'] = 0.4 * 1/server_information['Latency'] + 0.4 * 1/server_information['CPU Utilization'] + 0.2 * server_information['Throughput']
+
+    server_info = {}
+    server_info['info'] = server_information
+    server_info['location'] = server_location
+
+    servers.append(server_info)
+
+  for i in range(grid_height*grid_width//8):
+    insert_grass(grid)
+  
+  return grid, servers
+
 pygame.init()
 
 BASE_TILE_0 = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'base_0.png')), (CELL_SIZE, CELL_SIZE))
@@ -183,42 +219,52 @@ BASE_TILE_1 = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'b
 USER_TILE = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'user.png')), (CELL_SIZE, CELL_SIZE))
 SERVER_TILE = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'server.png')), (CELL_SIZE, CELL_SIZE))
 
+BUTTON_CONNECT_TO_SERVER_raw = pygame.image.load(os.path.join('assets', 'button_connect-to-server.png'))
+padding = 10
+new_width = INTERFACE_WIDTH - 2 * padding
+old_width = BUTTON_CONNECT_TO_SERVER_raw.get_rect().width
+old_height = BUTTON_CONNECT_TO_SERVER_raw.get_rect().height
+factor = new_width / old_width
+new_height = factor * old_height
+BUTTON_CONNECT_TO_SERVER = pygame.transform.scale(BUTTON_CONNECT_TO_SERVER_raw, (new_width, new_height))
+
+button_connect_pos = ((INTERFACE_WIDTH - new_width)//2, DISPLAY_HEIGHT//2 - new_height//2)
+button_connect_rect = pygame.Rect(
+  DISPLAY_WIDTH + button_connect_pos[0], 
+  button_connect_pos[1],
+  BUTTON_CONNECT_TO_SERVER.get_rect().width,
+  BUTTON_CONNECT_TO_SERVER.get_rect().height
+)
+
+BUTTON_REBUILD_MAP_raw = pygame.image.load(os.path.join('assets', 'button_rebuild-map.png'))
+padding = 10
+old_width = BUTTON_REBUILD_MAP_raw.get_rect().width
+old_height = BUTTON_REBUILD_MAP_raw.get_rect().height
+new_height = new_height
+factor = new_height / old_height
+new_width = factor * old_width
+BUTTON_REBUILD_MAP = pygame.transform.scale(BUTTON_REBUILD_MAP_raw, (new_width, new_height))
+
+button_rebuild_pos = ((INTERFACE_WIDTH - new_width)//2, 20)
+button_rebuild_rect = pygame.Rect(
+  DISPLAY_WIDTH + button_rebuild_pos[0], 
+  button_rebuild_pos[1],
+  BUTTON_REBUILD_MAP.get_rect().width,
+  BUTTON_REBUILD_MAP.get_rect().height
+)
+
 grid_width = DISPLAY_WIDTH//CELL_SIZE
 grid_height = DISPLAY_HEIGHT//CELL_SIZE
 
-grid = []
-for i in range(grid_height):
-  row = []
-  for j in range(grid_width):
-    row.append('EMPTY')
-  grid.append(row)
-
 player_x = grid_width//2
 player_y = grid_height//2
-grid[player_y][player_x] = 'PLAYER'
 
-servers = []
-for i in range(4):
-  server_location = insert_server(grid)
-  server_information = { 
-    'CPU Utilization': random.randint(20, 80000)/100, 
-    'Throughput': random.randint(100,1000)/100, 
-    'Status': bool(random.randint(0, 1)),
-    'Latency': 5 * ((server_location[0] - player_x) ** 2 + (server_location[1] - player_y) ** 2) ** (1/2)
-  }
-
-  server_info = {}
-  server_info['info'] = server_information
-  server_info['location'] = server_location
-
-  servers.append(server_info)
-
-for i in range(grid_height*grid_width//8):
-  insert_grass(grid)
+grid, servers = init_grid()
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('Load Balancing')
 
+is_connected = False
 running = True
 while running:
 
@@ -229,8 +275,16 @@ while running:
     if event.type == pygame.QUIT:
       running = False
 
+    if event.type == pygame.MOUSEBUTTONDOWN:
+      pos = pygame.mouse.get_pos()
+      if button_rebuild_rect.collidepoint(pos):
+        grid, servers = init_grid()
+        is_connected = False
+      if button_connect_rect.collidepoint(pos):
+        is_connected = True
+
   paint_display(screen, grid, servers)
-  paint_interface(screen)
+  paint_interface(screen, button_connect_pos, button_rebuild_pos)
   pygame.display.flip()
 
   # change this for framerate
