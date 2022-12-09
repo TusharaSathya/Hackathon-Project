@@ -7,7 +7,7 @@ import random
 from functools import cache
 
 CELL_SIZE = 80
-DISPLAY_WIDTH = CELL_SIZE * 9
+DISPLAY_WIDTH = CELL_SIZE * 13
 DISPLAY_HEIGHT = CELL_SIZE * 9
 
 INTERFACE_WIDTH = 200
@@ -42,8 +42,8 @@ def paint_display(screen, grid, servers):
   grid_height = len(grid)
   grid_width = len(grid[0]) if grid else 0
 
-  for row_no in range(grid_width):
-    for col_no in range(grid_height):
+  for row_no in range(grid_height):
+    for col_no in range(grid_width):
       cell_x = col_no * CELL_SIZE
       cell_y = row_no * CELL_SIZE
 
@@ -52,8 +52,8 @@ def paint_display(screen, grid, servers):
       else:
         screen.blit(BASE_TILE_0, (cell_x, cell_y))
 
-  for row_no in range(grid_width):
-    for col_no in range(grid_height):
+  for row_no in range(grid_height):
+    for col_no in range(grid_width):
       cell_x = col_no * CELL_SIZE
       cell_y = row_no * CELL_SIZE
 
