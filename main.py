@@ -215,6 +215,21 @@ def init_grid(no_servers):
   
   return grid, servers
 
+def apply_noise(servers):
+  for server in servers:
+
+    if random.randint(0, 10) == 0:
+      latency = 5 * ((server['location'][0] - player_x) ** 2 + (server['location'][1] - player_y) ** 2) ** (1/2)
+      latency += latency * random.uniform(-0.1, 0.1)
+      server['info']['Latency'] = latency
+
+    if random.randint(0, 15) == 0:
+      CPU_utilization = server['info']['CPU Utilization'] * (1 + random.uniform(-0.1, 0.1))
+      if 20 <= CPU_utilization <= 80:
+        server['info']['CPU Utilization'] = CPU_utilization
+    
+    server['info']['Score'] = - server['info']['Latency']/20 - server['info']['CPU Utilization']/80 + server['info']['Throughput']/10
+
 pygame.init()
 
 BASE_TILE_0 = pygame.transform.scale(pygame.image.load(os.path.join('assets', 'base_0.png')), (CELL_SIZE, CELL_SIZE))
@@ -313,6 +328,8 @@ while running:
 
   pygame_widgets.update(events)
   pygame.display.flip()
+
+  apply_noise(servers)
 
   # change this for framerate
   pygame.time.delay(100)
