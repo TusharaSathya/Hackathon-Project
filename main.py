@@ -1,4 +1,7 @@
+import pygame_widgets
 import pygame
+from pygame_widgets.slider import Slider
+from pygame_widgets.textbox import TextBox
 import os
 import random
 from functools import cache
@@ -180,7 +183,7 @@ def insert_grass(grid):
 
   grid[server_y][server_x] = 'GRASS'
 
-def init_grid():
+def init_grid(no_servers):
   grid = []
   for i in range(grid_height):
     row = []
@@ -191,7 +194,7 @@ def init_grid():
   grid[player_y][player_x] = 'PLAYER'
 
   servers = []
-  for i in range(4):
+  for i in range(no_servers):
     server_location = insert_server(grid)
     server_information = { 
       'CPU Utilization': random.randint(2000, 8000)/100, 
@@ -259,10 +262,25 @@ grid_height = DISPLAY_HEIGHT//CELL_SIZE
 player_x = grid_width//2
 player_y = grid_height//2
 
-grid, servers = init_grid()
+min_servers = 0
+max_servers = grid_width * grid_height // 10
+current_no_servers = max_servers // 2
+
+grid, servers = init_grid(current_no_servers)
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('Load Balancing')
+
+padding = 15
+new_width = INTERFACE_WIDTH - 2 * padding
+new_y = button_connect_rect.y + button_connect_rect.height + padding
+height = 15
+slider = Slider(screen, DISPLAY_WIDTH + (INTERFACE_WIDTH - new_width)//2, new_y, new_width, height, min = min_servers, max = max_servers, step = 1)
+
+padding = 5
+new_y = new_y + height + 3 * padding
+output = TextBox(screen, DISPLAY_WIDTH + padding, new_y, INTERFACE_WIDTH - 2 * padding, 40, fontSize=30)
+output.disable()
 
 is_connected = False
 running = True
@@ -278,13 +296,22 @@ while running:
     if event.type == pygame.MOUSEBUTTONDOWN:
       pos = pygame.mouse.get_pos()
       if button_rebuild_rect.collidepoint(pos):
-        grid, servers = init_grid()
+        grid, servers = init_grid(current_no_servers)
         is_connected = False
       if button_connect_rect.collidepoint(pos):
         is_connected = True
 
   paint_display(screen, grid, servers)
   paint_interface(screen, button_connect_pos, button_rebuild_pos)
+
+  requested_no_servers = slider.getValue()
+  output.setText(requested_no_servers)
+
+  if requested_no_servers != current_no_servers:
+    current_no_servers = requested_no_servers
+    grid, servers = init_grid(current_no_servers)
+
+  pygame_widgets.update(events)
   pygame.display.flip()
 
   # change this for framerate
