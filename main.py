@@ -202,7 +202,7 @@ def init_grid(no_servers):
       'Status': bool(random.randint(0, 1)),
       'Latency': 5 * ((server_location[0] - player_x) ** 2 + (server_location[1] - player_y) ** 2) ** (1/2)
     }
-    server_information['Score'] = 0.4 * 1/server_information['Latency'] + 0.4 * 1/server_information['CPU Utilization'] + 0.2 * server_information['Throughput']
+    server_information['Score'] = - server_information['Latency']/20 - server_information['CPU Utilization']/80 + server_information['Throughput']/10
 
     server_info = {}
     server_info['info'] = server_information
